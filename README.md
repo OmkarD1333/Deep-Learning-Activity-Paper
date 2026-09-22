@@ -4,7 +4,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
 [![Albumentations](https://img.shields.io/badge/Albumentations-Data%20Augmentation-brightgreen.svg)](https://albumentations.ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WMommKGaYXy8R0Z71qM867zjbni_k6mG?usp=sharing)
 
 A comprehensive, clean, and modular PyTorch reimplementation of the seminal paper:
 
