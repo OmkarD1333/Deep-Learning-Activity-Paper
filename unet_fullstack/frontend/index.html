@@ -1,0 +1,68 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>U-Net Biomedical Segmentation Lab</title>
+<style>
+:root{--bg:#08111f;--panel:#0f1b2d;--line:#243653;--text:#eaf2ff;--muted:#9eb0c9;--accent:#54d2ff;--accent2:#8b7cff;--good:#50e3a4;--danger:#ff6b7a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0%,#142947 0,#08111f 42%);color:var(--text);font:15px Inter,system-ui,Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:rgba(8,17,31,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav{max-width:1200px;margin:auto;padding:18px 22px;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800}.brand span{color:var(--accent)}nav a{color:var(--muted);text-decoration:none;margin-left:20px}
+main{max-width:1200px;margin:auto;padding:42px 22px 80px}.hero{display:grid;grid-template-columns:1.3fr .7fr;gap:25px;align-items:center}.eyebrow{color:var(--accent);letter-spacing:.13em;text-transform:uppercase;font-size:12px;font-weight:700}
+h1{font-size:clamp(38px,6vw,72px);line-height:.98;margin:12px 0 20px}h2{font-size:28px;margin:0 0 15px}p{color:var(--muted);line-height:1.7}
+.card{background:rgba(15,27,45,.8);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 16px 50px #0003}.hero .card{min-height:250px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat strong{font-size:25px;display:block}.stat small{color:var(--muted)}
+section{margin-top:30px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+button{border:0;border-radius:11px;padding:12px 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#07101e;font-weight:800;cursor:pointer}button.secondary{background:#17263d;color:var(--text);border:1px solid var(--line)}button:disabled{opacity:.5;cursor:not-allowed}
+.controls{display:flex;gap:10px;flex-wrap:wrap}.status{margin-top:14px;color:var(--muted)}.progress{height:9px;background:#18283e;border-radius:9px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{padding:15px;border:1px solid var(--line);border-radius:14px;text-align:center;color:var(--muted)}.step b{display:block;color:var(--text);margin-bottom:6px}
+.arch{display:flex;align-items:center;justify-content:space-between;gap:8px;overflow:auto}.block{min-width:125px;padding:18px 12px;border:1px solid var(--line);border-radius:15px;text-align:center;background:#111f34}.arrow{color:var(--accent);font-size:24px}
+.upload{border:1px dashed #456083;border-radius:16px;padding:25px;text-align:center}.upload input{display:none}.upload label{display:inline-block;padding:11px 15px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.images{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}.images img{width:100%;aspect-ratio:1;border-radius:12px;object-fit:cover;background:#050a12}.caption{font-size:12px;color:var(--muted);margin-top:7px}
+pre{background:#07101c;border:1px solid var(--line);padding:15px;border-radius:12px;overflow:auto;color:#cfe2ff}
+footer{max-width:1200px;margin:auto;padding:25px 22px;border-top:1px solid var(--line);color:var(--muted)}
+@media(max-width:800px){.hero,.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.pipeline{grid-template-columns:1fr 1fr}.images{grid-template-columns:1fr 1fr}nav a{display:none}}
+</style>
+</head>
+<body>
+<header><nav><div class="brand">U-NET <span>SEGMENTATION LAB</span></div><div><a href="#run">Run</a><a href="#architecture">Architecture</a><a href="#metrics">Metrics</a></div></nav></header>
+<main>
+<section class="hero">
+<div><div class="eyebrow">PyTorch • ISBI 2012 • Biomedical Vision</div><h1>Train and run the real U-Net pipeline.</h1><p>This website is connected to a FastAPI + PyTorch backend implementing the notebook workflow: dataset download, preprocessing, weighted loss maps, augmentation, U-Net training, checkpointing, validation metrics and image prediction.</p><div class="controls"><button onclick="setup()">1. Setup Dataset</button><button class="secondary" onclick="startTrain()">2. Start Training</button></div></div>
+<div class="card"><div class="eyebrow">Backend status</div><h2 id="device">Checking…</h2><p id="health">Connecting to Python backend.</p><div class="progress"><div class="bar" id="bar"></div></div><div class="status" id="trainStatus">Idle</div></div>
+</section>
+
+<section class="stats" id="stats"></section>
+
+<section id="run"><div class="card"><div class="eyebrow">Live execution</div><h2>Notebook execution status</h2><p id="message">Use Setup Dataset first. Training runs in a background Python thread so the browser stays responsive.</p><div class="progress"><div class="bar" id="trainbar"></div></div><div class="status" id="epoch"></div></div></section>
+
+<section id="architecture"><div class="card"><div class="eyebrow">Fig. 1 structure</div><h2>U-Net architecture</h2><div class="arch"><div class="block"><b>Input</b>1 × 256 × 256</div><div class="arrow">→</div><div class="block"><b>Encoder</b>64 → 128 → 256 → 512</div><div class="arrow">→</div><div class="block"><b>Bottleneck</b>1024 channels</div><div class="arrow">→</div><div class="block"><b>Decoder</b>512 → 256 → 128 → 64</div><div class="arrow">→</div><div class="block"><b>Output</b>2 classes</div></div><p>Default backend variant is the notebook's <b>UNetPadded</b>. The backend also contains the paper-faithful unpadded <b>UNetOriginal</b> with center-cropped skip connections.</p></div></section>
+
+<section class="grid">
+<div class="card"><div class="eyebrow">Loss Eq. 1 + 2</div><h2>Weighted segmentation loss</h2><p>Each pixel receives class-balance weight plus a boundary term that emphasizes narrow gaps between touching cells.</p><pre>w(x) = w_c(x) + w₀ exp(-(d₁+d₂)² / 2σ²)
+w₀ = 10, σ = 5 px</pre></div>
+<div class="card"><div class="eyebrow">Training</div><h2>Notebook configuration</h2><div id="info">Loading…</div></div>
+</section>
+
+<section><div class="card"><div class="eyebrow">Qualitative visualization</div><h2>Input → Ground Truth → Weight Map → Prediction</h2><div class="controls"><button class="secondary" onclick="visualize()">Load validation sample</button><button class="secondary" onclick="metrics()">Calculate validation metrics</button></div><div class="images" id="viz"></div><div id="metricText" class="status"></div></div></section>
+
+<section><div class="card"><div class="eyebrow">Inference</div><h2>Run your own image</h2><p>After training, upload a grayscale biomedical image. The backend resizes it to 256×256, runs the trained PyTorch checkpoint and returns the predicted binary mask.</p><div class="upload"><input id="file" type="file" accept="image/*"><label for="file">Choose image</label><p id="fileName">No file selected</p><button onclick="predict()">Run U-Net prediction</button></div><div class="images" id="pred"></div></div></section>
+</main>
+<footer>U-Net Biomedical Segmentation Lab • Backend: FastAPI + PyTorch • Based on the supplied notebook.</footer>
+<script>
+const $=id=>document.getElementById(id);
+async function api(path,opt){const r=await fetch(path,opt);const j=await r.json();if(!r.ok)throw Error(j.detail||"Request failed");return j}
+async function health(){try{const j=await api('/api/health');$('device').textContent=j.cuda?'CUDA / GPU':'CPU';$('health').textContent=j.checkpoint?'Checkpoint available':'No trained checkpoint yet';}catch(e){$('health').textContent=e.message}}
+async function info(){try{const j=await api('/api/notebook-info');$('info').innerHTML=Object.entries(j).map(([k,v])=>`<div><b>${k}</b>: ${Array.isArray(v)?v.join(', '):v}</div>`).join('');$('stats').innerHTML=`<div class="card stat"><strong>${j.images}</strong><small>labeled images</small></div><div class="card stat"><strong>${j.train}</strong><small>training split</small></div><div class="card stat"><strong>${j.val}</strong><small>validation split</small></div><div class="card stat"><strong>${j.epochs}</strong><small>epochs</small></div>`}catch(e){$('info').textContent=e.message}}
+async function setup(){ $('message').textContent='Downloading/checking the real ISBI dataset…';try{const j=await api('/api/setup',{method:'POST'});$('message').textContent=`Dataset ready: ${j.images} images; ${j.train} train / ${j.val} validation. Device: ${j.device}`;health()}catch(e){$('message').textContent=e.message}}
+async function startTrain(){try{await api('/api/train',{method:'POST'});poll()}catch(e){$('message').textContent=e.message}}
+async function poll(){const j=await api('/api/status');$('trainStatus').textContent=j.status;$('message').textContent=j.message||'';$('epoch').textContent=`Epoch ${j.epoch}/${j.total_epochs} • IoU ${j.val_iou==null?'—':j.val_iou.toFixed(4)} • Pixel accuracy ${j.val_pixel_acc==null?'—':j.val_pixel_acc.toFixed(4)}`;$('trainbar').style.width=(j.epoch/j.total_epochs*100)+'%';$('bar').style.width=(j.epoch/j.total_epochs*100)+'%';if(j.status==='training')setTimeout(poll,1500);else health()}
+async function visualize(){try{const j=await api('/api/visualization');$('viz').innerHTML=[['input','Input image'],['ground_truth','Ground truth'],['weight_map','Weight map'],['prediction','Predicted mask']].map(([k,t])=>j[k]?`<div><img src="${j[k]}"><div class="caption">${t}</div></div>`:`<div><div class="caption">Train model to generate prediction</div></div>`).join('');}catch(e){$('metricText').textContent=e.message}}
+async function metrics(){try{const j=await api('/api/metrics');$('metricText').textContent=j.available?`Mean IoU: ${j.mean_iou.toFixed(4)} ± ${j.std_iou.toFixed(4)} | Mean pixel accuracy: ${j.mean_pixel_accuracy.toFixed(4)} ± ${j.std_pixel_accuracy.toFixed(4)}`:j.message}catch(e){$('metricText').textContent=e.message}}
+$('file').onchange=e=>$('fileName').textContent=e.target.files[0]?.name||'No file selected';
+async function predict(){const f=$('file').files[0];if(!f){$('fileName').textContent='Choose an image first.';return}const fd=new FormData();fd.append('file',f);try{const j=await api('/api/predict',{method:'POST',body:fd});$('pred').innerHTML=`<div><img src="${j.input}"><div class="caption">Uploaded image</div></div><div><img src="${j.prediction}"><div class="caption">U-Net prediction</div></div>`}catch(e){$('fileName').textContent=e.message}}
+health();info();setInterval(()=>{if($('trainStatus').textContent==='training')poll()},3000);
+</script>
+</body>
+</html>
